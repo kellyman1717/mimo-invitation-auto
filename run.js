@@ -121,11 +121,13 @@ async function main() {
     const icode = await solveImage(img, cfg.captcha || {});
     log('  solved icode =', icode);
 
-    // Xiaomi's challenge is 5 chars; a solver that returns junk (a stray word,
-    // a truncated read) is wrong by construction. Submitting it would only burn
-    // a round-trip and invalidate `ick`, so skip straight to a fresh image.
-    if (!/^[a-z0-9]{4,6}$/i.test(icode)) {
-      log(`  implausible answer ${JSON.stringify(icode)}, refetching ${attempt}/${maxAttempts}…`);
+    // Xiaomi's challenge is always 5 chars, and a solver that reads 4 of them
+    // is wrong by construction — measured 0 successes out of 5 such answers,
+    // against ~50% for 5-char ones. Submitting it would only burn a round-trip
+    // and invalidate `ick`, so skip straight to a fresh image.
+    const wantLen = (cfg.captcha && cfg.captcha.length) || 5;
+    if (!new RegExp(`^[a-z0-9]{${wantLen}}$`, 'i').test(icode)) {
+      log(`  implausible answer ${JSON.stringify(icode)} (want ${wantLen} chars), refetching ${attempt}/${maxAttempts}…`);
       if (attempt === maxAttempts) throw new Error(`captcha solver never produced a usable answer (last: ${icode})`);
       continue;
     }

@@ -17,6 +17,7 @@ Isi `config.json`:
 - `mail` — alamat dan password mailbox CloudMail kamu
 - `domains` — domain email random, pilih salah satu
 - `captcha.apiKey` — API key CapSolver
+- `invite.project` — jawaban esai untuk form invite, sebaiknya diubah (lihat di bawah)
 
 Lalu jalankan:
 
@@ -76,11 +77,22 @@ Implementasinya ada di `lib/crypto.js`.
 Provider diatur di `config.json` lewat `captcha.provider`. Yang didukung:
 `capsolver` (default), `2captcha`, `anticaptcha`, `local` (tesseract.js), `manual`.
 
-Captcha Xiaomi berupa 5 karakter yang cukup berisik, jadi akurasinya sekitar
-50-70 persen per percobaan. Karena jawaban salah membuat cookie `ick` tidak valid,
-`run.js` mengambil gambar baru setiap kali retry, bukan mengirim ulang jawaban yang
-sama. Jawaban yang jelas salah (kosong atau panjangnya tidak wajar) langsung
-dibuang tanpa dikirim ke server.
+Captcha Xiaomi selalu 5 karakter dan cukup berisik. Hasil pengukuran pada 11
+percobaan nyata:
+
+```
+jawaban 5 karakter : diterima 3 dari 6  -> 50%
+jawaban 4 karakter : diterima 0 dari 5  -> 0%
+```
+
+Solver cukup sering salah baca dan hanya mengembalikan 4 karakter, dan jawaban
+seperti itu selalu ditolak. Karena itu `run.js` memeriksa panjang jawaban sebelum
+mengirim: kalau bukan 5 karakter, gambar langsung diambil ulang tanpa membuang
+satu request. Panjang ini bisa diatur lewat `captcha.length` di `config.json`.
+
+Jawaban salah juga membuat cookie `ick` tidak valid, jadi setiap retry selalu
+mengambil gambar baru, bukan mengirim ulang jawaban yang sama. `maxAttempts`
+diset 10 karena sekitar separuh percobaan gagal.
 
 ## Isi form invite
 

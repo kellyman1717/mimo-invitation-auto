@@ -9,7 +9,8 @@
     "provider": "capsolver",
     "apiKey": "CAP-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "timeoutMs": 180000,
-    "maxAttempts": 6
+    "maxAttempts": 10,
+    "length": 5
   },
   "xiaomi": {
     "region": "ID",
