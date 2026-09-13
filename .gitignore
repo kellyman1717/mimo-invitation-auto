@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# secrets — config.json holds the captcha API key and the mailbox password
+config.json
+
+# generated accounts (email + password + session cookies)
+results/
+
+# scratch space (captcha images, traces, one-off scripts)
+tmp/
+
+# reference captures, not needed at runtime
+*.har
+
+# python venv from the abandoned ddddocr experiment
+.venv/
+
+*.log

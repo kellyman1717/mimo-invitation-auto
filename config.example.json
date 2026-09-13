@@ -1,0 +1,24 @@
+{
+  "mail": {
+    "baseUrl": "https://cloud-mail.example.workers.dev",
+    "email": "your-mailbox@example.com",
+    "password": "your-mailbox-password"
+  },
+  "domains": ["k9419.my.id", "soloman.biz.id"],
+  "captcha": {
+    "provider": "capsolver",
+    "apiKey": "CAP-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "timeoutMs": 180000,
+    "maxAttempts": 6
+  },
+  "xiaomi": {
+    "region": "ID",
+    "locale": "en_US"
+  },
+  "password": {
+    "length": 14
+  },
+  "invite": {
+    "project": "I'm already build a platform that user can orchestrate an AI agent so they worked more efficient"
+  }
+}
