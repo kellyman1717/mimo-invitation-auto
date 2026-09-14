@@ -19,7 +19,15 @@
   "password": {
     "length": 14
   },
-  "invite": {
-    "project": "I'm already build a platform that user can orchestrate an AI agent so they worked more efficient"
+  "invite": {},
+  "proxy": {
+    "enabled": false,
+    "scriptPath": "D:\\Project\\unikey-auto\\proxypool.py",
+    "validateTarget": "https://global.account.xiaomi.com/pass2/config",
+    "want": 24,
+    "minPool": 8,
+    "spare": 4,
+    "required": false,
+    "verbose": false
   }
 }
