@@ -1,8 +1,13 @@
 {
   "mail": {
+    "mode": "catchall",
     "baseUrl": "https://cloud-mail.example.workers.dev",
     "email": "your-mailbox@example.com",
-    "password": "your-mailbox-password"
+    "password": "your-mailbox-password",
+
+    "_gmail": "Untuk mode gmail: ganti mode di atas jadi \"gmail\", lalu isi dua field ini. appPassword = App Password 16 huruf dari Google (bukan password akun).",
+    "appPassword": "",
+    "scriptPath": "lib/gmail.py"
   },
   "domains": ["k9419.my.id", "soloman.biz.id"],
   "captcha": {
