@@ -14,9 +14,8 @@ cp config.example.json config.json
 
 Isi `config.json`:
 
-- `mail` — sumber email: CloudMail catch-all atau Gmail dot trick (lihat bagian
-  Sumber email)
-- `domains` — domain email random, pilih salah satu (mode catchall saja)
+- `mail` — mailbox CloudMail (lihat bagian Sumber email)
+- `domains` — domain email random, pilih salah satu
 - `captcha.apiKey` — API key CapSolver
 - `proxy` — pool proxy dari `proxypool.py` (lihat bagian Proxy)
 - `invite.project` — biarkan kosong untuk teks acak (lihat di bawah)
@@ -101,65 +100,37 @@ Implementasinya ada di `lib/crypto.js`.
 
 ## Sumber email
 
-Dua mode, dipilih lewat `mail.mode`.
-
-### `catchall` (default)
-
 Pakai mailbox CloudMail. Inbox-nya catch-all, jadi tiap akun dapat alamat acak
 di domain yang kamu daftarkan di `domains` dan semua balasannya masuk ke satu
 inbox.
 
 ```json
 "mail": {
-  "mode": "catchall",
   "baseUrl": "https://cloud-mail.xxx.workers.dev",
   "email": "mailbox@example.com",
   "password": "password-mailbox"
 }
 ```
 
-### `gmail`
+### Kenapa bukan Gmail dot trick
 
-Pakai akun Gmail kamu sendiri, dan manfaatkan **dot trick**: Gmail mengabaikan
-titik di bagian depan alamat, jadi `johndoe@gmail.com`, `j.o.h.ndoe@gmail.com`,
-dan `j.o.h.n.doe@gmail.com` semuanya masuk ke inbox yang sama. Satu mailbox
-melayani seluruh batch — tiap akun dapat alamat berbeda yang dianggap baru oleh
-Xiaomi, tapi OTP-nya mendarat di tempat yang sama.
+Gmail mengabaikan titik di bagian depan alamat, jadi `johndoe@gmail.com` dan
+`j.o.h.ndoe@gmail.com` masuk ke inbox yang sama. Terlihat seperti cara
+mendapatkan ribuan alamat dari satu mailbox — tapi **Xiaomi juga mengabaikan
+titik**, jadi trik ini tidak berfungsi di sini.
 
-```json
-"mail": {
-  "mode": "gmail",
-  "email": "johndoe@gmail.com",
-  "appPassword": "abcd efgh ijkl mnop"
-}
-```
+Terukur pada 5 varian titik dari satu mailbox: **0 diterima, 5 ditolak** dengan
+kode 25014 "sudah terdaftar", padahal varian-varian itu belum pernah
+didaftarkan. Alamat catch-all acak sebagai kontrol diterima, dan alamat Gmail
+acak yang belum pernah dipakai juga diterima — jadi yang ditolak memang
+spesifik ke mailbox yang sudah punya akun Xiaomi.
 
-**`appPassword` bukan password akun Gmail kamu.** Google menolak password akun
-biasa untuk IMAP. Bikin App Password:
+`+alias` (`johndoe+mimo@gmail.com`) juga tidak menolong: setelah captcha benar,
+Xiaomi menolaknya dengan 25014 yang sama.
 
-1. Aktifkan 2-Step Verification di <https://myaccount.google.com/security>
-2. Buka <https://myaccount.google.com/apppasswords>
-3. Bikin password baru (nama bebas, misal "mimo-auto"), copy 16 hurufnya
-
-Spasi di App Password boleh ditulis atau tidak — script menghapusnya otomatis.
-
-Berapa alamat yang bisa dibikin, tergantung panjang bagian depan:
-
-| email | alamat tersedia |
-| --- | --- |
-| `ab@gmail.com` | 1 |
-| `abc@gmail.com` | 3 |
-| `johndoe@gmail.com` | 63 |
-| `kellyman9419@gmail.com` | 2047 |
-
-Script memperingatkan kalau `-n` lebih besar dari jumlah alamat yang tersedia,
-dan menolak jalan kalau emailnya bukan Gmail (dot trick tidak berlaku di domain
-lain — titiknya justru signifikan di sana, jadi alamatnya jadi mailbox berbeda
-dan OTP tidak akan pernah datang).
-
-Baca inbox-nya lewat IMAP (`lib/gmail.py`, Python stdlib). Mailbox dibuka
-**read-only**, jadi OTP tidak ditandai sudah dibaca dan kamu masih bisa cek
-manual di Gmail.
+Mailbox Gmail yang **belum pernah** dipakai untuk Xiaomi masih bisa dipakai satu
+kali, tapi tidak lebih dari itu — jadi untuk batch, catch-all tetap satu-satunya
+sumber yang jalan.
 
 ## Proxy
 

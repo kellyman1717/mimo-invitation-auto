@@ -1,15 +1,13 @@
 {
   "mail": {
-    "mode": "catchall",
     "baseUrl": "https://cloud-mail.example.workers.dev",
     "email": "your-mailbox@example.com",
-    "password": "your-mailbox-password",
-
-    "_gmail": "Untuk mode gmail: ganti mode di atas jadi \"gmail\", lalu isi dua field ini. appPassword = App Password 16 huruf dari Google (bukan password akun).",
-    "appPassword": "",
-    "scriptPath": "lib/gmail.py"
+    "password": "your-mailbox-password"
   },
-  "domains": ["k9419.my.id", "soloman.biz.id"],
+  "domains": [
+    "k9419.my.id",
+    "soloman.biz.id"
+  ],
   "captcha": {
     "provider": "capsolver",
     "apiKey": "CAP-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -26,7 +24,7 @@
   },
   "invite": {},
   "proxy": {
-    "enabled": false,
+    "enabled": true,
     "scriptPath": "D:\\Project\\unikey-auto\\proxypool.py",
     "validateTarget": "https://global.account.xiaomi.com/pass2/config",
     "want": 24,

@@ -16,7 +16,7 @@ tmp/
 # python venv from the abandoned ddddocr experiment
 .venv/
 
-# python bytecode cache (lib/gmail.py is imported by the IMAP reader)
+# python bytecode cache
 __pycache__/
 *.pyc
 

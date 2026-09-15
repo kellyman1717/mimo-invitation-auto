@@ -21,7 +21,6 @@ const { CloudMail, extractCode } = require('./lib/mail');
 const { solveImage } = require('./lib/captcha');
 const { MiMoInvite, defaultAnswers } = require('./lib/invite');
 const { ProxyBridge } = require('./lib/proxy');
-const { GmailBridge, dotVariant, dotVariantCount, DOTLESS_DOMAINS } = require('./lib/gmail');
 
 const RESULTS_DIR = path.join(__dirname, 'results');
 const ALL_ACCOUNTS = path.join(RESULTS_DIR, 'all_accounts.json');
@@ -171,26 +170,10 @@ async function createOneInner(cfg, ctx, onSession) {
   const log = makeLog(index, total);
 
   // ---- identity -----------------------------------------------------------
-  // Two modes. `catchall` invents an address on a domain whose mail all lands
-  // in one CloudMail inbox. `gmail` keeps the configured address but inserts
-  // dots, which Gmail ignores for delivery — so every account gets a distinct
-  // address that still arrives in the same mailbox.
-  const mode = mail.mode || 'catchall';
-  let email;
-  if (mode === 'gmail') {
-    email = dotVariant(mail.address);
-    if (!ctx.seenEmails) ctx.seenEmails = new Set();
-    // Two dotted variants can collide by chance; Xiaomi would reject the second
-    // as an existing account, so regenerate rather than waste the attempt.
-    for (let i = 0; i < 20 && ctx.seenEmails.has(email); i++) {
-      email = dotVariant(mail.address);
-    }
-    ctx.seenEmails.add(email);
-  } else {
-    const domains = cfg.domains || ['k9419.my.id'];
-    const domain = domains[crypto.randomInt(domains.length)];
-    email = `${randomLocalPart()}@${domain}`;
-  }
+  // A random address on a domain whose mail all lands in one catch-all inbox.
+  const domains = cfg.domains || ['k9419.my.id'];
+  const domain = domains[crypto.randomInt(domains.length)];
+  const email = `${randomLocalPart()}@${domain}`;
   const password = randomPassword((cfg.password && cfg.password.length) || 14);
   log('email    :', email);
   log('password :', password);
@@ -396,26 +379,12 @@ async function main() {
   const useProxy = opts.proxy || !!((cfg.proxy || {}).enabled);
   const total = opts.count;
 
-  // Check the config before warming anything: a missing Gmail app password is
-  // knowable in 0ms, and finding out after a 10s proxy warm-up is just rude.
+  // Validate before warming anything: a missing mailbox URL is knowable in 0ms,
+  // and finding out after a 10s proxy warm-up is just rude.
   const mailCfg = cfg.mail || {};
-  const mailMode = mailCfg.mode || 'catchall';
-  if (mailMode === 'gmail') {
-    if (!mailCfg.email || !mailCfg.appPassword) {
-      throw new Error(
-        'mail.mode is "gmail" but mail.email / mail.appPassword is missing in config.json'
-      );
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailCfg.email)) {
-      throw new Error(`mail.email is not a valid address: ${JSON.stringify(mailCfg.email)}`);
-    }
-    // Fail before the batch, not on account 12: the pool of dotted addresses is
-    // finite and derived from the local part length.
-    if (!DOTLESS_DOMAINS.has(mailCfg.email.split('@').pop().toLowerCase())) {
-      throw new Error(
-        `mail.mode is "gmail" but mail.email is not a Gmail address: ${mailCfg.email}. ` +
-        'The dot trick only works on gmail.com / googlemail.com.'
-      );
+  for (const key of ['baseUrl', 'email', 'password']) {
+    if (!mailCfg[key]) {
+      throw new Error(`mail.${key} is missing in config.json`);
     }
   }
 
@@ -455,44 +424,13 @@ async function main() {
   }
 
   // ---- mail ---------------------------------------------------------------
-  // Logged in once for the batch: both backends serve every address from a
-  // single inbox, so re-authenticating per account would be pure overhead.
-  //
-  // The two backends share an interface (baseline/waitForMail), so the rest of
-  // the run does not branch on which one is in use.
-  let mail;
-
-  if (mailMode === 'gmail') {
-    const gm = new GmailBridge({
-      user: mailCfg.email,
-      password: mailCfg.appPassword,
-      pyPath: mailCfg.scriptPath,
-      verbose: !!process.env.DEBUG,
-    });
-    if (!gm.available) {
-      throw new Error(`gmail.py not found at ${gm.pyPath}`);
-    }
-    log('logging in to gmail (IMAP)…');
-    await gm.start();
-    global.__gmailBridge = gm; // stopped in main().finally
-    // Fail fast on a mailbox that cannot supply enough addresses: with -n 20 and
-    // a 3-char local part there are only 3 possible variants.
-    const variants = dotVariantCount(mailCfg.email);
-    if (total > variants) {
-      log(`WARNING: ${mailCfg.email} only yields ${variants} distinct dotted addresses, but -n is ${total}`);
-      log('WARNING: raise the local part length or lower -n, or later accounts will reuse addresses');
-    }
-    log(`mail ready (gmail dot trick, ~${variants} addresses available)`);
-    mail = gm;
-    mail.mode = 'gmail';
-    mail.address = mailCfg.email;
-  } else {
-    const cm = new CloudMail(mailCfg);
-    log('logging in to cloud-mail…');
-    cm.login();
-    log('mail ready');
-    mail = cm;
-  }
+  // Logged in once for the batch: the inbox is a catch-all, so one session
+  // serves every generated address and re-authenticating per account would be
+  // pure overhead.
+  const mail = new CloudMail(mailCfg);
+  log('logging in to cloud-mail…');
+  mail.login();
+  log('mail ready');
 
   // ---- batch --------------------------------------------------------------
   if (total > 1) log(`creating ${total} accounts, ${opts.delayMs}ms between them`);
@@ -548,9 +486,8 @@ main()
     if (process.env.DEBUG) console.error(e.stack);
     process.exitCode = 1;
   })
-  // The proxy pool and gmail reader are child processes; without this the event
-  // loop stays alive after a successful run and the script never exits.
+  // The proxy pool is a child process; without this the event loop stays alive
+  // after a successful run and the script never exits.
   .finally(() => {
     if (global.__proxyBridge) global.__proxyBridge.stop();
-    if (global.__gmailBridge) global.__gmailBridge.stop();
   });
